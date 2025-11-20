@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>🎅 Secret Santa — Big Blast + Excel Links</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;800&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg1:#0b1220;--bg2:#0f172a;--bg3:#1b2a4a;--muted:#9aa6b2;--text:#eaf2ff;--brand1:#22d3ee;--brand2:#a78bfa;--chip:#111827; }
+  html,body{height:100%}
+  body{margin:0;color:var(--text);font-family:'Nunito',system-ui,Segoe UI,Roboto,Arial,sans-serif; background: radial-gradient(1200px 800px at 20% 10%, var(--bg3) 0%, var(--bg2) 40%, var(--bg1) 100%);} 
+  .container{max-width:1100px;margin:34px auto;padding:0 16px;position:relative;z-index:1}
+  h1{font-family:'Montserrat',Inter,system-ui;letter-spacing:.3px;font-size:clamp(28px,3.4vw,44px);font-weight:800;display:flex;gap:14px;align-items:center;text-shadow:0 6px 32px rgba(167,139,250,.25)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));border:1px solid #1f2937;border-radius:16px;box-shadow:0 12px 48px rgba(0,0,0,.35)}
+  .card h2{margin:0;padding:14px 16px;border-bottom:1px solid #1f2937;color:#dbeafe;font-size:16px;font-weight:800}
+  .card .note{padding:0 16px 8px;color:var(--muted);font-size:12px}
+  textarea{width:100%;min-height:220px;background:#0b1220;color:var(--text);border:none;outline:none;padding:14px;border-radius:14px;resize:vertical;font-size:14px}
+  .bar{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;align-items:center}
+  button{appearance:none;border:none;border-radius:14px;padding:13px 18px;font-weight:800;letter-spacing:.2px;color:#041016;cursor:pointer;box-shadow:0 10px 28px rgba(0,0,0,.35);transition:transform .06s ease,box-shadow .2s ease,filter .15s ease}
+  .primary{background:conic-gradient(from 0deg, var(--brand1), var(--brand2), var(--brand1));background-size:200% 200%;animation:sheen 6s linear infinite}
+  @keyframes sheen{0%{background-position:0 0}100%{background-position:200% 200%}}
+  .ghost{background:#111827;color:#cbd5e1;border:1px solid #1f2937}
+  button:disabled{filter:grayscale(1) brightness(.7);cursor:not-allowed}
+  button:active{transform:translateY(1px)}
+  .status{margin-top:14px;padding:10px 12px;border-radius:12px;background:#0b1220;border:1px solid #1f2937;color:#cbd5e1;display:none}
+  .status.ok{border-color:#065f46}
+  .status.err{border-color:#7f1d1d;color:#fecaca}
+  /* Modal */
+  .overlay{position:fixed;inset:0;background:rgba(3,7,18,.68);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:60}
+  .modal{width:min(820px,94vw);background:radial-gradient(900px 400px at 10% 10%,#0f172a,#0b1220);border:1px solid #1f2937;border-radius:22px;padding:22px 20px;position:relative;overflow:hidden}
+  .modal .title{display:flex;align-items:center;gap:12px;font-size:20px;font-weight:800}
+  .modal .subtitle{color:#cbd5e1;margin:4px 0 0}
+  .modal .cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+  /* Canvas layers */
+  #snow{position:fixed;inset:0;pointer-events:none;z-index:2}
+  #fx{position:fixed;inset:0;pointer-events:none;z-index:70}
+  /* Reveal board */
+  .reveal-board{margin-top:18px;display:none}
+  .reveal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:10px}
+  .reveal-card{background:#0b1220;border:1px dashed #1f2937;border-radius:14px;padding:12px}
+  .reveal-card .name{font-weight:800}
+  .reveal-card .row{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .reveal-card input{flex:1;background:#0b1220;border:1px solid #1f2937;color:#e5e7eb;border-radius:8px;padding:8px}
+  .reveal-card button{padding:8px 10px;border-radius:8px}
+  @media print{ body{background:white;color:black} .no-print{display:none !important} .slip{page-break-after:always;border:2px dashed #999;padding:24px;border-radius:12px;margin:0} .slip h3{margin:0 0 10px 0;font-family:'Montserrat',sans-serif}}
+  .reveal-only{max-width:700px;margin:40px auto;padding:20px}
+  .reveal-only .card{padding:18px}
+  .big{font-size:28px;font-weight:900}
+</style>
+</head>
+<body style="background: linear-gradient(135deg, #ffecd2, #fcb69f, #ffe3f1);">
+<canvas id="snow"></canvas>
+<canvas id="fx"></canvas>
+<div class="container no-print" id="app">
+  <h1><span style="color:#FF0000;">🎄 Secret Santa</span></h1>
+  <div class="grid">
+    <div class="card">
+	  <h2><span style="color:#FF0000;">🎅Santas</span></h2>
+      <div class="note">One name per line. Blanks & duplicates are ignored (case‑insensitive).</div>
+      <div style="padding:0 16px 16px"><textarea id="santas" placeholder="Pankaj\nArati\nNidhi"></textarea></div>
+    </div>
+    <div class="card">
+      <h2><span style="color:#FF0000;">🧝 Children</span></h2>
+      <div class="note">Must have the same unique count as Santas.</div>
+      <div style="padding:0 16px 16px"><textarea id="children" placeholder="Pankaj\nArati\nNidhi"></textarea></div>
+    </div>
+  </div>
+  <div class="bar">
+    <button class="primary" id="btnMap">✨ Create Magical Mapping</button>
+    <button class="ghost" id="btnCsv" disabled>⬇️ Download CSV</button>
+    <button class="ghost" id="btnLinksXls" disabled>📘 Download Links (Excel)</button>
+    <button class="ghost" id="btnSlips" disabled>🖨️ Print Slips (PDF)</button>
+    <button class="ghost" id="btnReset">♻️ Reset</button>
+  </div>
+  <div id="status" class="status"></div>
+
+  <div id="revealBoard" class="reveal-board">
+    <div class="reveal-grid" id="revealGrid"></div>
+  </div>
+</div>
+
+<!-- Success Modal -->
+<div id="overlay" class="overlay no-print" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="title"><span style="font-size:28px">🎉</span> Assignments Ready!</div>
+    <p class="subtitle">Choose how you want to share the cheer:</p>
+    <div class="cta">
+      <button class="primary" id="mCsv">⬇️ Download CSV</button>
+      <button class="ghost" id="mLinks">🔗 Show Per‑Person Reveal Links</button>
+      <button class="ghost" id="mLinksXls">📘 Download Links (Excel)</button>
+      <button class="ghost" id="mSlips">🖨️ Print Slips (to PDF)</button>
+      <button class="ghost" id="mClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reveal-only view -->
+<div id="revealOnly" class="reveal-only" style="display:none">
+  <div class="card" style="border:1px solid #1f2937;border-radius:16px;background:#0f172a;padding:18px">
+    <h2>🎄✨ Your Secret Santa Assignment is HERE! 🎁💫</h2>
+    <p style="color:#FFD700" class="big" id="roSanta"></p>
+    <p>your holiday magic begins with</p>
+    <p style="color:#FFD700" class="big" id="roChild"></p>
+    <p style="color:#94a3b8">(🎄 Shhh… keep the wonder under wraps! 🤫✨ Make this season sparkle with surprises that light up your child’s world! 🌟)</p>
+    <!-- <div class="bar">
+      <button class="primary" onclick="window.print()">🖨️ Print to PDF</button>
+      <button class="ghost" onclick="location.hash=''">Back to App</button>
+    </div>-->
+  </div>
+</div>
+
+<script>
+  const $ = s => document.querySelector(s);
+  const byLinesUnique = (text) => { const seen = new Set(); return text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).filter(s=>{const k=s.toLowerCase(); if(seen.has(k)) return false; seen.add(k); return true;}); };
+  function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+  function derangeNoSelf(santas, children){ const n=santas.length; if(n!==children.length) return null; if(n===0) return []; if(n===1 && santas[0].toLowerCase()===children[0].toLowerCase()) return null; let c=children.slice(); shuffle(c); for(let attempt=0;attempt<300;attempt++){ let ok=true; for(let i=0;i<n;i++){ if(santas[i].toLowerCase()===c[i].toLowerCase()){ok=false;break;} } if(ok) return c; for(let i=0;i<n;i++){ if(santas[i].toLowerCase()===c[i].toLowerCase()){ let j=-1; for(let k=0;k<n;k++){ if(k===i) continue; if(santas[i].toLowerCase()!==c[k].toLowerCase() && santas[k].toLowerCase()!==c[i].toLowerCase()){ j=k; break; } } if(j===-1){ const k=(i+1)%n; [c[i],c[k]]=[c[k],c[i]]; } else { [c[i],c[j]]=[c[j],c[i]]; } } } const i=Math.floor(Math.random()*n), j=Math.floor(Math.random()*n); if(i!==j) [c[i],c[j]]=[c[j],c[i]]; } return null; }
+  function b64(s){return btoa(unescape(encodeURIComponent(s)))}
+  function b64d(s){return decodeURIComponent(escape(atob(s)))}
+  function makeToken(santa,child){return b64(JSON.stringify({s:santa,c:child}))}
+  function parseToken(tok){try{return JSON.parse(b64d(tok))}catch(e){return null}}
+  function buildCSV(pairs){const lines=['Santa,Child']; for(const [s,c] of pairs){lines.push(escapeCSV(s)+','+escapeCSV(c));} return lines.join('\n');}
+  function escapeCSV(v){return /[",\n]/.test(v)? '"'+v.replace(/"/g,'""')+'"': v}
+  function download(name,text,type='text/plain'){const blob=new Blob([text],{type:type+';charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url;a.download=name;document.body.appendChild(a);a.click(); setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},0)}
+
+  // Build Excel (SpreadsheetML 2003) so it opens as native Excel without libs
+  function buildLinksExcelXML(rows){
+    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="s"><Font ss:Bold="1"/></Style></Styles><Worksheet ss:Name="Links"><Table><Row><Cell ss:StyleID="s"><Data ss:Type="String">Santa</Data></Cell><Cell ss:StyleID="s"><Data ss:Type="String">Reveal Link</Data></Cell></Row>${rows.map(r=>`<Row><Cell><Data ss:Type="String">${esc(r.s)}</Data></Cell><Cell><Data ss:Type="String">${esc(r.link)}</Data></Cell></Row>`).join('')}</Table></Worksheet></Workbook>`;
+  }
+
+  // Snow background
+  ;(function snow(){ const canvas=document.getElementById('snow'), ctx=canvas.getContext('2d'); let w,h,flakes=[]; const COUNT=140; const resize=()=>{w=canvas.width=innerWidth; h=canvas.height=innerHeight;}; resize(); addEventListener('resize',resize); for(let i=0;i<COUNT;i++){ flakes.push({x:Math.random()*w, y:Math.random()*h, r:Math.random()*2+0.6, s:Math.random()*0.6+0.2}); } function draw(){ ctx.clearRect(0,0,w,h); ctx.fillStyle='rgba(255,255,255,.85)'; for(const f of flakes){ ctx.beginPath(); ctx.arc(f.x,f.y,f.r,0,Math.PI*2); ctx.fill(); f.y+=f.s; f.x+=Math.sin(f.y*0.01)*0.35; if(f.y>h){ f.y=-5; f.x=Math.random()*w; } } requestAnimationFrame(draw);} draw(); })();
+
+  // BIG BLAST Confetti (canvas physics)
+  const fx = (()=>{ const canvas=document.getElementById('fx'), ctx=canvas.getContext('2d'); let W,H, parts=[]; const colors=['#f87171','#fbbf24','#34d399','#60a5fa','#a78bfa','#f472b6','#22d3ee','#fde68a']; const resize=()=>{W=canvas.width=innerWidth; H=canvas.height=innerHeight;}; resize(); addEventListener('resize',resize);
+    function spawnBurst(x,y,count=180,spread=Math.PI*2,speed=6){ for(let i=0;i<count;i++){ const angle = Math.random()*spread; const v = speed*(0.6+Math.random()*0.8); parts.push({x,y, vx:Math.cos(angle)*v, vy:Math.sin(angle)*v, g:0.12+Math.random()*0.08, life:60+Math.random()*30, c:colors[(Math.random()*colors.length)|0], w:6+Math.random()*6, h:6+Math.random()*10, r:Math.random()*Math.PI}); } }
+    function spawnCorners(){ const m=140; spawnBurst(0,0,m); spawnBurst(W,0,m); spawnBurst(0,H,m); spawnBurst(W,H,m); }
+    function tick(){ ctx.clearRect(0,0,W,H); for(let i=parts.length-1;i>=0;i--){ const p=parts[i]; p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.r+=0.2; p.life-=1; if(p.life<=0 || p.y>H+40 || p.x<-40 || p.x>W+40){ parts.splice(i,1); continue;} ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r); ctx.fillStyle=p.c; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore(); } requestAnimationFrame(tick); }
+    tick();
+    return { blastCenter:()=>spawnBurst(W/2,H/2,220,Math.PI*2,8), blastCorners:()=>spawnCorners() };
+  })();
+
+  function celebratoryBlast(){ fx.blastCorners(); setTimeout(()=>fx.blastCenter(),200); }
+  function openModal(){ document.getElementById('overlay').style.display='flex'; document.getElementById('overlay').setAttribute('aria-hidden','false'); celebratoryBlast(); }
+  function closeModal(){ document.getElementById('overlay').style.display='none'; document.getElementById('overlay').setAttribute('aria-hidden','true'); }
+
+  let lastPairs=null; // [[s,c]]
+
+  function renderRevealLinks(pairs){ const grid=document.getElementById('revealGrid'); grid.innerHTML=''; const base = location.href.split('#')[0]; const rows=[]; for(const [s,c] of pairs){ const tok=makeToken(s,c); const link=`${base}#reveal=${tok}`; rows.push({s,link}); const card=document.createElement('div'); card.className='reveal-card'; card.innerHTML=`<div class="name">${escapeHTML(s)}</div><div class="row"><input value="${link}" readonly/><button class="ghost">Copy</button></div>`; const btn=card.querySelector('button'); const input=card.querySelector('input'); btn.addEventListener('click',()=>{ input.select(); document.execCommand('copy'); btn.textContent='Copied!'; setTimeout(()=>btn.textContent='Copy',1200); celebratoryBlast(); }); grid.appendChild(card); }
+    document.getElementById('revealBoard').style.display='block';
+    // Enable Excel button now that links exist
+    const xlsBtn = document.getElementById('btnLinksXls'); xlsBtn.disabled=false; xlsBtn.onclick = () => {
+      const xml = buildLinksExcelXML(rows);
+      download(`secret_santa_links_${new Date().getFullYear()}.xls`, xml, 'application/vnd.ms-excel');
+      celebratoryBlast();
+    };
+    // Also wire modal Excel button
+    const mx = document.getElementById('mLinksXls');
+    if(mx){ mx.onclick = ()=>{ const xml = buildLinksExcelXML(rows); download(`secret_santa_links_${new Date().getFullYear()}.xls`, xml, 'application/vnd.ms-excel'); celebratoryBlast(); closeModal(); }; }
+  }
+
+  function escapeHTML(s){return s.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
+
+  // Main actions
+  document.getElementById('btnMap').addEventListener('click',()=>{ const santas=byLinesUnique(document.getElementById('santas').value), children=byLinesUnique(document.getElementById('children').value); const status=document.getElementById('status'); if(santas.length!==children.length){ status.className='status err'; status.style.display='block'; status.textContent=`Counts must match (Santas: ${santas.length}, Children: ${children.length}).`; lastPairs=null; document.getElementById('btnCsv').disabled=true; document.getElementById('btnSlips').disabled=true; document.getElementById('btnLinksXls').disabled=true; return; } if(santas.length===0){ status.className='status err'; status.style.display='block'; status.textContent='Please enter at least one Santa and one Child.'; lastPairs=null; document.getElementById('btnCsv').disabled=true; document.getElementById('btnSlips').disabled=true; document.getElementById('btnLinksXls').disabled=true; return; } const assigned=derangeNoSelf(santas,children); if(!assigned){ status.className='status err'; status.style.display='block'; status.textContent='Unable to create a no‑self‑match mapping with the given names (try adjusting names).'; lastPairs=null; document.getElementById('btnCsv').disabled=true; document.getElementById('btnSlips').disabled=true; document.getElementById('btnLinksXls').disabled=true; return; } lastPairs=santas.map((s,i)=>[s,assigned[i]]); status.className='status ok'; status.style.display='block'; status.textContent='🎉 Mapping created! Use Download options or generate links (and Excel).'; document.getElementById('btnCsv').disabled=false; document.getElementById('btnSlips').disabled=false; openModal(); });
+
+  function doCsv(){ if(!lastPairs) return; const csv=buildCSV(lastPairs); const d=new Date(); const name=`secret_santa_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.csv`; download(name,csv,'text/csv'); }
+  function showLinks(){ if(!lastPairs) return; renderRevealLinks(lastPairs); }
+  function printSlips(){ if(!lastPairs) return; let host=document.getElementById('slipsHost'); if(!host){ host=document.createElement('div'); host.id='slipsHost'; document.body.appendChild(host); } host.innerHTML=''; for(const [s,c] of lastPairs){ const slip=document.createElement('div'); slip.className='slip'; slip.innerHTML=`<h3>🎁 Secret Santa Slip</h3><p><strong>Santa:</strong> ${escapeHTML(s)}</p><p><strong>Gives a gift to:</strong> ${escapeHTML(c)}</p><p style=\"color:#666\">(Keep it secret!)</p>`; host.appendChild(slip); } window.print(); }
+
+  document.getElementById('btnCsv').addEventListener('click', doCsv);
+  document.getElementById('btnSlips').addEventListener('click', printSlips);
+  document.getElementById('btnReset').addEventListener('click',()=>{ document.getElementById('santas').value=''; document.getElementById('children').value=''; document.getElementById('status').style.display='none'; document.getElementById('btnCsv').disabled=true; document.getElementById('btnSlips').disabled=true; document.getElementById('btnLinksXls').disabled=true; document.getElementById('revealBoard').style.display='none'; document.getElementById('revealGrid').innerHTML=''; lastPairs=null; });
+
+  document.getElementById('mCsv').addEventListener('click',()=>{ doCsv(); closeModal(); });
+  document.getElementById('mLinks').addEventListener('click',()=>{ showLinks(); celebratoryBlast(); closeModal(); });
+  document.getElementById('mSlips').addEventListener('click',()=>{ printSlips(); closeModal(); });
+  document.getElementById('mClose').addEventListener('click', closeModal);
+
+  // Reveal-only routing
+  function route(){ const hash=location.hash; if(hash.startsWith('#reveal=')){ const tok=hash.slice(8); const data=parseToken(tok); if(!data){ alert('Invalid reveal link'); location.hash=''; return; } document.getElementById('app').style.display='none'; document.getElementById('revealOnly').style.display='block'; document.getElementById('roSanta').textContent=data.s; document.getElementById('roChild').textContent=data.c; setTimeout(celebratoryBlast, 150); } else { document.getElementById('revealOnly').style.display='none'; document.getElementById('app').style.display='block'; } }
+  window.addEventListener('hashchange', route); route();
+</script>
+</body>
+</html>
